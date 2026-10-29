@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Regiment · Workout Tracker{% endblock %}
+{% block content %}
+<section class="card">
+  <h1>Active regiment</h1>
+  {% if active %}
+    <h2>{{ active.name }}</h2>
+    <p>{{ active.description }}</p>
+  {% else %}
+    <p>No regiment active.</p>
+  {% endif %}
+</section>
+
+{% for day in days %}
+<section class="card">
+  <h2>{{ WEEKDAYS[day.weekday] }} — {{ day.title }}</h2>
+  {% if day.notes %}<p class="muted">{{ day.notes }}</p>{% endif %}
+  {% if day.exercises %}
+    <ul class="plan-list">
+      {% for ex in day.exercises %}
+        <li>
+          <strong>{{ ex.name }}</strong>
+          {% if ex.target %}<span class="tag">{{ ex.target }}</span>{% endif %}
+          {% if ex.notes %}<div class="muted">{{ ex.notes }}</div>{% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="muted">Rest / empty day.</p>
+  {% endif %}
+</section>
+{% endfor %}
+{% endblock %}

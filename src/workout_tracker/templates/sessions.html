@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}History · Workout Tracker{% endblock %}
+{% block content %}
+<section class="card">
+  <h1>Session history</h1>
+  {% if sessions %}
+    <ul class="plain">
+      {% for s in sessions %}
+        <li>
+          <a href="/sessions/{{ s.id }}"><strong>{{ s.workout_date }}</strong> — {{ s.title }}</a>
+          {% if s.comment %}<div class="muted">{{ s.comment }}</div>{% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="muted">No sessions logged yet.</p>
+  {% endif %}
+</section>
+{% endblock %}

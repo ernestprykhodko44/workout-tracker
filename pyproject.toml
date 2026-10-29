@@ -1,0 +1,33 @@
+[project]
+name = "workout-tracker"
+version = "0.1.0"
+description = "Simple workout tracker: regiment WOD + actual logs with comments"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "jinja2>=3.1.4",
+    "python-multipart>=0.0.12",
+    "pydantic>=2.9.0",
+]
+
+[project.scripts]
+workout-tracker = "workout_tracker.main:run"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/workout_tracker"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"src/workout_tracker/templates" = "workout_tracker/templates"
+"src/workout_tracker/static" = "workout_tracker/static"
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28.1",
+]
+

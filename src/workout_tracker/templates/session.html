@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}{{ session.title }} · Workout Tracker{% endblock %}
+{% block content %}
+<section class="card">
+  <div class="row between">
+    <div>
+      <p class="muted">{{ session.workout_date }}</p>
+      <h1>{{ session.title }}</h1>
+    </div>
+    <form method="post" action="/sessions/{{ session.id }}/delete" onsubmit="return confirm('Delete this session?');">
+      <button type="submit" class="danger">Delete</button>
+    </form>
+  </div>
+
+  <form method="post" action="/sessions/{{ session.id }}/comment" class="stack">
+    <label>
+      Workout comment
+      <textarea name="comment" rows="3" placeholder="Overall notes for the session">{{ session.comment }}</textarea>
+    </label>
+    <button type="submit">Save workout comment</button>
+  </form>
+</section>
+
+{% for ex in session.exercises %}
+<section class="card" id="ex-{{ ex.id }}">
+  <form method="post" action="/sessions/{{ session.id }}/exercises/{{ ex.id }}" class="stack">
+    <label>
+      Exercise
+      <input type="text" name="name" value="{{ ex.name }}" required />
+    </label>
+    <label>
+      Sets (one per line: <code>80 kg x 5</code> or <code>135x5 @ RPE8</code>)
+      <textarea name="sets_text" rows="4" placeholder="60 kg x 5&#10;70 kg x 5&#10;80 kg x 3">{{ format_sets(ex.sets) }}</textarea>
+    </label>
+    <label>
+      Exercise comment
+      <textarea name="comment" rows="2" placeholder="Form notes, pain, swap reasons…">{{ ex.comment }}</textarea>
+    </label>
+    <button type="submit" class="primary">Save exercise</button>
+  </form>
+</section>
+{% endfor %}
+
+<section class="card">
+  <h2>Add exercise</h2>
+  <form method="post" action="/sessions/{{ session.id }}/exercises" class="stack">
+    <label>
+      Name
+      <input type="text" name="name" required placeholder="e.g. Cable fly" />
+    </label>
+    <label>
+      Comment
+      <textarea name="comment" rows="2"></textarea>
+    </label>
+    <button type="submit">Add</button>
+  </form>
+</section>
+{% endblock %}

@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Today · Workout Tracker{% endblock %}
+{% block content %}
+<section class="card">
+  <div class="row between">
+    <h1>Workout of the day</h1>
+    <form method="get" action="/" class="inline">
+      <label>
+        Date
+        <input type="date" name="d" value="{{ on_date }}" onchange="this.form.submit()" />
+      </label>
+    </form>
+  </div>
+
+  {% if wod %}
+    <p class="muted">
+      {{ WEEKDAYS[wod.weekday] }} · {{ wod.regiment.name }}
+    </p>
+    <h2>{{ wod.planned_day.title }}</h2>
+    {% if wod.planned_day.notes %}
+      <p>{{ wod.planned_day.notes }}</p>
+    {% endif %}
+
+    {% if wod.planned_day.exercises %}
+      <ul class="plan-list">
+        {% for ex in wod.planned_day.exercises %}
+          <li>
+            <strong>{{ ex.name }}</strong>
+            {% if ex.target %}<span class="tag">{{ ex.target }}</span>{% endif %}
+            {% if ex.notes %}<div class="muted">{{ ex.notes }}</div>{% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="muted">No planned lifts — rest day.</p>
+    {% endif %}
+
+    <form method="post" action="/sessions/start-wod" class="stack">
+      <input type="hidden" name="workout_date" value="{{ on_date }}" />
+      <label>
+        Session comment (optional)
+        <textarea name="comment" rows="2" placeholder="How are you feeling going in?"></textarea>
+      </label>
+      <button type="submit" class="primary">Start this workout</button>
+    </form>
+  {% else %}
+    <p>No active regiment. Seed data should create one on first boot.</p>
+  {% endif %}
+</section>
+
+{% if today_sessions %}
+<section class="card">
+  <h2>Already logged for {{ on_date }}</h2>
+  <ul class="plain">
+    {% for s in today_sessions %}
+      <li><a href="/sessions/{{ s.id }}">{{ s.title }}</a></li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+
+<section class="card">
+  <h2>Custom session</h2>
+  <form method="post" action="/sessions/blank" class="stack">
+    <input type="hidden" name="workout_date" value="{{ on_date }}" />
+    <label>
+      Title
+      <input type="text" name="title" value="Custom workout" />
+    </label>
+    <label>
+      Comment
+      <textarea name="comment" rows="2"></textarea>
+    </label>
+    <button type="submit">Start blank session</button>
+  </form>
+</section>
+
+<section class="card">
+  <h2>Recent sessions</h2>
+  {% if sessions %}
+    <ul class="plain">
+      {% for s in sessions %}
+        <li>
+          <a href="/sessions/{{ s.id }}">{{ s.workout_date }} — {{ s.title }}</a>
+          {% if s.comment %}<span class="muted"> · {{ s.comment[:80] }}</span>{% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="muted">No sessions yet.</p>
+  {% endif %}
+</section>
+{% endblock %}
