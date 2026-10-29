@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 import re
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -31,7 +31,10 @@ def on_startup() -> None:
 def parse_date(value: str | None) -> date:
     if not value:
         return date.today()
-    return date.fromisoformat(value)
+    try:
+        return date.fromisoformat(value)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail="Use a valid date (YYYY-MM-DD)") from exc
 
 
 def parse_sets_from_form(raw: str) -> list[dict[str, Any]]:
@@ -92,8 +95,13 @@ def format_sets(sets: list[dict[str, Any]]) -> str:
     return "\n".join(lines)
 
 
+def display_date(value: str, fmt: str = "%b %d, %Y") -> str:
+    return date.fromisoformat(value).strftime(fmt)
+
 templates.env.globals["WEEKDAYS"] = WEEKDAYS
 templates.env.globals["format_sets"] = format_sets
+
+templates.env.globals["display_date"] = display_date
 
 
 @app.get("/healthz")
@@ -104,13 +112,42 @@ def healthz() -> dict[str, str]:
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request, d: str | None = None):
     on_date = parse_date(d)
+    week_start = on_date - timedelta(days=on_date.weekday())
+    week_end = week_start + timedelta(days=7)
     with db.get_db() as conn:
         wod = db.get_wod(conn, on_date)
-        sessions = db.list_sessions(conn, limit=10)
+        sessions = db.list_sessions(conn, limit=4)
         today_sessions = [
-            s for s in sessions if s["workout_date"] == on_date.isoformat()
+            dict(row) for row in conn.execute(
+                "SELECT * FROM workout_session WHERE workout_date = ? ORDER BY id DESC",
+                (on_date.isoformat(),),
+            ).fetchall()
         ]
-        regiments = db.list_regiments(conn)
+        activity = {
+            row["workout_date"]: row["count"]
+            for row in conn.execute(
+                "SELECT workout_date, COUNT(*) AS count FROM workout_session "
+                "WHERE workout_date >= ? AND workout_date < ? GROUP BY workout_date",
+                (week_start.isoformat(), week_end.isoformat()),
+            ).fetchall()
+        }
+        total_sessions = conn.execute("SELECT COUNT(*) FROM workout_session").fetchone()[0]
+        active = db.get_active_regiment(conn)
+        days = db.list_planned_days(conn, active["id"]) if active else []
+    week = []
+    for i in range(7):
+        day_date = week_start + timedelta(days=i)
+        planned = next((day for day in days if day["weekday"] == i), None)
+        week.append({
+            "date": day_date.isoformat(),
+            "number": day_date.day,
+            "label": WEEKDAYS[i],
+            "title": planned["title"] if planned else "No plan",
+            "is_rest": not planned or not planned["exercises"],
+            "selected": day_date == on_date,
+            "is_today": day_date == date.today(),
+            "logged": activity.get(day_date.isoformat(), 0),
+        })
     return templates.TemplateResponse(
         request,
         "home.html",
@@ -119,7 +156,17 @@ def home(request: Request, d: str | None = None):
             "on_date": on_date.isoformat(),
             "sessions": sessions,
             "today_sessions": today_sessions,
-            "regiments": regiments,
+            "active": active,
+            "week": week,
+            "week_label": f"{week_start.strftime('%b %d')} – {(week_end - timedelta(days=1)).strftime('%b %d, %Y')}",
+            "previous_week": (on_date - timedelta(days=7)).isoformat(),
+            "next_week": (on_date + timedelta(days=7)).isoformat(),
+            "date_label": on_date.strftime("%A, %B %d"),
+            "is_today": on_date == date.today(),
+            "is_current_week": week_start <= date.today() < week_end,
+            "week_sessions": sum(activity.values()),
+            "active_days": len(activity),
+            "total_sessions": total_sessions,
         },
     )
 
@@ -194,7 +241,7 @@ def session_comment(session_id: int, comment: str = Form("")):
         if not db.get_session(conn, session_id):
             raise HTTPException(status_code=404, detail="Session not found")
         db.update_session_comment(conn, session_id, comment)
-    return RedirectResponse(f"/sessions/{session_id}", status_code=303)
+    return RedirectResponse(f"/sessions/{session_id}?saved=notes", status_code=303)
 
 
 @app.post("/sessions/{session_id}/exercises/{exercise_id}")
@@ -220,7 +267,7 @@ def save_exercise(
             )
         except ValueError as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
-    return RedirectResponse(f"/sessions/{session_id}#ex-{exercise_id}", status_code=303)
+    return RedirectResponse(f"/sessions/{session_id}?saved=exercise#ex-{exercise_id}", status_code=303)
 
 
 @app.post("/sessions/{session_id}/exercises")
