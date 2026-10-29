@@ -1,93 +1,121 @@
 {% extends "base.html" %}
-{% block title %}Today · Workout Tracker{% endblock %}
+{% block title %}Overview · Workout Tracker{% endblock %}
 {% block content %}
-<section class="card">
-  <div class="row between">
-    <h1>Workout of the day</h1>
-    <form method="get" action="/" class="inline">
-      <label>
-        Date
-        <input type="date" name="d" value="{{ on_date }}" onchange="this.form.submit()" />
-      </label>
-    </form>
-  </div>
+<div class="page-heading">
+  <div><h1>Let’s make progress.</h1><p>Your next rep. Your next milestone. It all starts here.</p></div>
+  <form method="get" action="/" class="date-picker">
+    <label>{{ icon('calendar', 16) }}<span>Workout date</span><input aria-label="Workout date" type="date" name="d" value="{{ on_date }}" onchange="this.form.submit()" required /></label>
+    <noscript><button type="submit">View date</button></noscript>
+  </form>
+</div>
 
-  {% if wod %}
-    <p class="muted">
-      {{ WEEKDAYS[wod.weekday] }} · {{ wod.regiment.name }}
-    </p>
-    <h2>{{ wod.planned_day.title }}</h2>
-    {% if wod.planned_day.notes %}
-      <p>{{ wod.planned_day.notes }}</p>
-    {% endif %}
-
-    {% if wod.planned_day.exercises %}
-      <ul class="plan-list">
-        {% for ex in wod.planned_day.exercises %}
-          <li>
-            <strong>{{ ex.name }}</strong>
-            {% if ex.target %}<span class="tag">{{ ex.target }}</span>{% endif %}
-            {% if ex.notes %}<div class="muted">{{ ex.notes }}</div>{% endif %}
-          </li>
-        {% endfor %}
-      </ul>
-    {% else %}
-      <p class="muted">No planned lifts — rest day.</p>
-    {% endif %}
-
-    <form method="post" action="/sessions/start-wod" class="stack">
-      <input type="hidden" name="workout_date" value="{{ on_date }}" />
-      <label>
-        Session comment (optional)
-        <textarea name="comment" rows="2" placeholder="How are you feeling going in?"></textarea>
-      </label>
-      <button type="submit" class="primary">Start this workout</button>
-    </form>
-  {% else %}
-    <p>No active regiment. Seed data should create one on first boot.</p>
-  {% endif %}
+<section class="stats-grid" aria-label="Your activity">
+  <div class="stat"><span class="stat-icon">{{ icon('dumbbell', 22) }}</span><div><div class="stat-label">Workouts {{ 'this week' if is_current_week else 'that week' }}</div><div class="stat-value">{{ week_sessions }}<span>sessions logged</span></div></div></div>
+  <div class="stat"><span class="stat-icon">{{ icon('bolt', 22) }}</span><div><div class="stat-label">Active days {{ 'this week' if is_current_week else 'that week' }}</div><div class="stat-value">{{ active_days }}<span>of 7 days</span></div></div></div>
+  <div class="stat"><span class="stat-icon">{{ icon('target', 22) }}</span><div><div class="stat-label">Total workouts</div><div class="stat-value">{{ total_sessions }}<span>and counting</span></div></div></div>
 </section>
 
 {% if today_sessions %}
-<section class="card">
-  <h2>Already logged for {{ on_date }}</h2>
-  <ul class="plain">
-    {% for s in today_sessions %}
-      <li><a href="/sessions/{{ s.id }}">{{ s.title }}</a></li>
-    {% endfor %}
-  </ul>
-</section>
+<div class="notice">{{ icon('check', 17) }}<span>{{ today_sessions|length }} session{{ 's' if today_sessions|length != 1 else '' }} logged for this date.</span><a href="/sessions/{{ today_sessions[0].id }}">Continue latest {{ icon('arrow', 15) }}</a></div>
 {% endif %}
 
-<section class="card">
-  <h2>Custom session</h2>
+<div class="dashboard-grid">
+  <div class="main-column">
+    <section class="card workout-card" aria-labelledby="workout-title">
+      <div class="workout-hero">
+        <div class="hero-top"><span class="hero-label">{{ icon('activity', 14) }} {{ 'TODAY’S WORKOUT' if is_today else 'PLANNED WORKOUT' }}</span><span class="hero-badge">{{ date_label }}</span></div>
+        {% if wod %}
+        <h2 id="workout-title">{{ wod.planned_day.title }}</h2>
+        <p>{{ wod.planned_day.notes or 'A new opportunity to get a little stronger.' }}</p>
+        <div class="hero-meta"><span>{{ icon('dumbbell', 14) }} {{ wod.planned_day.exercises|length }} exercises</span><span>{{ icon('calendar', 14) }} {{ wod.regiment.name }}</span></div>
+        {% else %}
+        <h2 id="workout-title">Make it your own.</h2><p>No workout planned for this date. A custom session is always an option.</p>
+        {% endif %}
+      </div>
+      {% if wod and wod.planned_day.exercises %}
+      <div class="exercise-plan">
+        <div class="list-caption"><span>THE GAME PLAN</span><span>SETS × REPS</span></div>
+        {% for ex in wod.planned_day.exercises %}
+        <div class="exercise-row">
+          <span class="exercise-number">{{ "%02d"|format(loop.index) }}</span>
+          <div class="exercise-name"><strong>{{ ex.name }}</strong>{% if ex.notes %}<small>{{ ex.notes }}</small>{% endif %}</div>
+          <span class="exercise-target">{{ ex.target.replace('x', ' × ') }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% elif wod %}
+      <div class="empty-state"><span class="empty-icon">{{ icon('leaf', 24) }}</span><h3>Recovery is part of the plan.</h3><p>Take a breath, move gently, and come back stronger.</p></div>
+      {% endif %}
+      <div class="workout-action">
+        {% if wod and wod.planned_day.exercises %}
+        <form method="post" action="/sessions/start-wod">
+          <input type="hidden" name="workout_date" value="{{ on_date }}" />
+          <details class="optional-note"><summary>Add a note before you start</summary><label>Session note<textarea name="comment" rows="2" placeholder="How are you feeling going in?"></textarea></label></details>
+          <button type="submit" class="primary full-width">{{ icon('plus', 17) }} Start workout {{ icon('arrow', 17) }}</button>
+        </form>
+        <p class="action-hint">Your exercises are ready. Just bring the effort.</p>
+        {% else %}
+        <button class="primary full-width" type="button" data-open-dialog="custom-session">{{ icon('plus', 17) }} Start a custom session</button>
+        {% endif %}
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-heading"><div><h2>Recent workouts</h2><p>A little effort, added up over time.</p></div><a class="text-link" href="/sessions">View history {{ icon('arrow', 14) }}</a></div>
+      {% if sessions %}
+      <ul class="session-list">
+        {% for s in sessions %}
+        <li><a class="session-item" href="/sessions/{{ s.id }}"><span class="session-symbol">{{ icon('dumbbell', 18) }}</span><span class="session-info"><strong>{{ s.title }}</strong><small>{{ display_date(s.workout_date, '%a, %b %d') }} · {{ 'Program workout' if s.planned_day_id else 'Custom session' }}</small></span>{{ icon('chevron', 16) }}</a></li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <div class="empty-state"><span class="empty-icon">{{ icon('history', 23) }}</span><h3>Your story starts with one workout.</h3><p>Start your first session and it will show up here.<br />You’ve got this.</p></div>
+      {% endif %}
+    </section>
+  </div>
+
+  <aside class="side-column" aria-label="Program and schedule">
+    <section class="card schedule-card">
+      <div class="card-heading"><div><h2>Your week</h2><p>{{ week_label }}</p></div><div class="week-controls"><a class="icon-button" href="/?d={{ previous_week }}" aria-label="Previous week"><span class="reverse">{{ icon('chevron', 14) }}</span></a><a class="icon-button" href="/?d={{ next_week }}" aria-label="Next week">{{ icon('chevron', 14) }}</a></div></div>
+      <div class="week-strip">
+        {% for day in week %}
+        <a class="week-day {{ 'selected' if day.selected else '' }} {{ 'rest' if day.is_rest else '' }} {{ 'logged' if day.logged else '' }}" href="/?d={{ day.date }}" aria-label="{{ day.label }} {{ day.date }}: {{ day.title }}{{ ', session logged' if day.logged else '' }}" {% if day.selected %}aria-current="date"{% endif %}>
+          <span class="day-name">{{ day.label }}</span><strong>{{ day.number }}</strong><span class="day-indicator">{% if day.logged %}{{ icon('check', 10) }}{% endif %}</span>
+        </a>
+        {% endfor %}
+      </div>
+      <div class="week-legend"><span><i class="legend-dot"></i> Training</span><span><i class="legend-dot rest"></i> Recovery</span><span>{{ icon('check', 10) }} Logged</span></div>
+    </section>
+
+    <section class="card program-card">
+      <div class="eyebrow">YOUR ACTIVE PROGRAM</div>
+      <span class="program-icon">{{ icon('dumbbell', 24) }}</span>
+      {% if active %}
+      <h2>{{ active.name }}</h2>
+      <p>{{ active.description }}</p>
+      <div class="program-tags"><span class="tag">Weekly plan</span><span class="tag">Active</span></div>
+      <a class="text-link" href="/regiment">Explore your program {{ icon('arrow', 16) }}</a>
+      {% else %}
+      <h2>A fresh start</h2><p>No active program. You can still log a custom workout.</p><a class="text-link" href="/regiment">View programs {{ icon('arrow', 16) }}</a>
+      {% endif %}
+    </section>
+
+    <section class="card custom-card">
+      <span class="custom-icon">{{ icon('plus', 22) }}</span>
+      <h2>Your workout. Your rules.</h2>
+      <p>Going off-plan? Build a session around what feels right today.</p>
+      <button type="button" data-open-dialog="custom-session">{{ icon('plus', 14) }} Create custom session</button>
+    </section>
+  </aside>
+</div>
+
+<dialog id="custom-session" aria-labelledby="custom-title">
+  <div class="card-heading"><div><h2 id="custom-title">Make it your own.</h2><p>Custom session · {{ display_date(on_date) }}</p></div><button type="button" class="icon-button" data-close-dialog aria-label="Close custom session">{{ icon('close', 18) }}</button></div>
   <form method="post" action="/sessions/blank" class="stack">
     <input type="hidden" name="workout_date" value="{{ on_date }}" />
-    <label>
-      Title
-      <input type="text" name="title" value="Custom workout" />
-    </label>
-    <label>
-      Comment
-      <textarea name="comment" rows="2"></textarea>
-    </label>
-    <button type="submit">Start blank session</button>
+    <label>Workout name<input type="text" name="title" placeholder="e.g. Sunday mobility" required autofocus /></label>
+    <label>Session note <span class="form-help">Optional — how are you feeling?</span><textarea name="comment" rows="3" placeholder="A fresh start, a new goal…"></textarea></label>
+    <button type="submit" class="primary full-width">{{ icon('plus', 16) }} Start custom session</button>
   </form>
-</section>
-
-<section class="card">
-  <h2>Recent sessions</h2>
-  {% if sessions %}
-    <ul class="plain">
-      {% for s in sessions %}
-        <li>
-          <a href="/sessions/{{ s.id }}">{{ s.workout_date }} — {{ s.title }}</a>
-          {% if s.comment %}<span class="muted"> · {{ s.comment[:80] }}</span>{% endif %}
-        </li>
-      {% endfor %}
-    </ul>
-  {% else %}
-    <p class="muted">No sessions yet.</p>
-  {% endif %}
-</section>
+</dialog>
 {% endblock %}

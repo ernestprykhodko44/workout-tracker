@@ -1,33 +1,23 @@
 {% extends "base.html" %}
-{% block title %}Regiment · Workout Tracker{% endblock %}
+{% block title %}My program · Workout Tracker{% endblock %}
+{% block breadcrumb %}My program{% endblock %}
 {% block content %}
-<section class="card">
-  <h1>Active regiment</h1>
-  {% if active %}
-    <h2>{{ active.name }}</h2>
-    <p>{{ active.description }}</p>
-  {% else %}
-    <p>No regiment active.</p>
-  {% endif %}
-</section>
-
+<div class="page-heading"><div><h1>A plan to get stronger.</h1><p>Your weekly roadmap. One session at a time.</p></div><a class="button" href="/">{{ icon('arrow', 16) }} Go to your workout</a></div>
+{% if active %}
+<section class="card program-banner"><span class="program-icon">{{ icon('dumbbell', 26) }}</span><div><div class="eyebrow muted">ACTIVE PROGRAM</div><h2>{{ active.name }}</h2><p>{{ active.description }}</p></div></section>
+<div class="program-grid">
 {% for day in days %}
 <section class="card">
-  <h2>{{ WEEKDAYS[day.weekday] }} — {{ day.title }}</h2>
-  {% if day.notes %}<p class="muted">{{ day.notes }}</p>{% endif %}
-  {% if day.exercises %}
-    <ul class="plan-list">
-      {% for ex in day.exercises %}
-        <li>
-          <strong>{{ ex.name }}</strong>
-          {% if ex.target %}<span class="tag">{{ ex.target }}</span>{% endif %}
-          {% if ex.notes %}<div class="muted">{{ ex.notes }}</div>{% endif %}
-        </li>
-      {% endfor %}
-    </ul>
+  <div class="card-heading"><div class="day-title"><span class="day-badge">{{ WEEKDAYS[day.weekday] }}</span><div><h2>{{ day.title }}</h2>{% if day.notes %}<p>{{ day.notes }}</p>{% endif %}</div></div><span class="tag">{{ (day.exercises|length ~ ' exercises') if day.exercises else 'Recovery' }}</span></div>
+  {% for ex in day.exercises %}
+  <div class="exercise-row"><span class="exercise-number">{{ "%02d"|format(loop.index) }}</span><div class="exercise-name"><strong>{{ ex.name }}</strong>{% if ex.notes %}<small>{{ ex.notes }}</small>{% endif %}</div><span class="exercise-target">{{ ex.target.replace('x', ' × ') }}</span></div>
   {% else %}
-    <p class="muted">Rest / empty day.</p>
-  {% endif %}
+  <p class="rest-note">{{ icon('leaf', 20) }} A little rest goes a long way.</p>
+  {% endfor %}
 </section>
 {% endfor %}
+</div>
+{% else %}
+<section class="card empty-state"><span class="empty-icon">{{ icon('calendar', 24) }}</span><h2>No active program yet.</h2><p>Start a custom session from the overview to keep moving.</p><a class="button primary" href="/">Back to overview {{ icon('arrow', 16) }}</a></section>
+{% endif %}
 {% endblock %}

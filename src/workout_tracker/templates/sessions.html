@@ -1,19 +1,18 @@
 {% extends "base.html" %}
-{% block title %}History · Workout Tracker{% endblock %}
+{% block title %}Workout history · Workout Tracker{% endblock %}
+{% block breadcrumb %}Workout history{% endblock %}
 {% block content %}
+<div class="page-heading"><div><h1>Look how far you’ve come.</h1><p>Every session is a step forward. Here’s your journey so far.</p></div><a class="button primary" href="/">{{ icon('plus', 16) }} New workout</a></div>
 <section class="card">
-  <h1>Session history</h1>
+  <div class="card-heading"><h2>Your workout journal</h2><span class="tag">{{ sessions|length }} recent session{{ 's' if sessions|length != 1 else '' }}</span></div>
   {% if sessions %}
-    <ul class="plain">
-      {% for s in sessions %}
-        <li>
-          <a href="/sessions/{{ s.id }}"><strong>{{ s.workout_date }}</strong> — {{ s.title }}</a>
-          {% if s.comment %}<div class="muted">{{ s.comment }}</div>{% endif %}
-        </li>
-      {% endfor %}
-    </ul>
+  <ul class="session-list">
+    {% for s in sessions %}
+    <li><a class="session-item" href="/sessions/{{ s.id }}"><span class="session-symbol">{{ icon('dumbbell', 20) }}</span><span class="session-info"><strong>{{ s.title }}</strong><small>{{ display_date(s.workout_date, '%A, %b %d, %Y') }} · {{ 'Program workout' if s.planned_day_id else 'Custom session' }}</small>{% if s.comment %}<span class="history-note">{{ s.comment }}</span>{% endif %}</span>{{ icon('chevron', 18) }}</a></li>
+    {% endfor %}
+  </ul>
   {% else %}
-    <p class="muted">No sessions logged yet.</p>
+  <div class="empty-state"><span class="empty-icon">{{ icon('history', 26) }}</span><h3>Your story starts with one workout.</h3><p>No sessions yet. Let’s put your first one on the board.</p><a class="button primary" href="/">Find your next workout {{ icon('arrow', 16) }}</a></div>
   {% endif %}
 </section>
 {% endblock %}

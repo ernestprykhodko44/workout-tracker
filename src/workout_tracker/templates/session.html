@@ -1,58 +1,47 @@
 {% extends "base.html" %}
 {% block title %}{{ session.title }} · Workout Tracker{% endblock %}
+{% block breadcrumb %}Workout session{% endblock %}
 {% block content %}
-<section class="card">
-  <div class="row between">
-    <div>
-      <p class="muted">{{ session.workout_date }}</p>
-      <h1>{{ session.title }}</h1>
-    </div>
-    <form method="post" action="/sessions/{{ session.id }}/delete" onsubmit="return confirm('Delete this session?');">
-      <button type="submit" class="danger">Delete</button>
-    </form>
+<div class="page-heading"><div><p>{{ display_date(session.workout_date, '%A, %B %d, %Y') }}</p><h1>{{ session.title }}</h1><p>Make every rep count. Log your effort below.</p></div><a class="button" href="/sessions">{{ icon('history', 16) }} Back to history</a></div>
+{% if request.query_params.get('saved') in ['notes', 'exercise'] %}
+<div class="notice" role="status">{{ icon('check', 17) }} {{ 'Exercise saved. Every rep counts.' if request.query_params.get('saved') == 'exercise' else 'Session notes saved.' }}</div>
+{% endif %}
+<div class="editor-layout">
+  <div class="main-column">
+    {% for ex in session.exercises %}
+    <section class="card editor-exercise" id="ex-{{ ex.id }}">
+      <div class="card-heading"><h2><span class="exercise-number">{{ "%02d"|format(loop.index) }}</span>{{ ex.name }}</h2><span class="tag">{{ ex.sets|length }} set{{ 's' if ex.sets|length != 1 else '' }} logged</span></div>
+      <form method="post" action="/sessions/{{ session.id }}/exercises/{{ ex.id }}" class="stack">
+        <label>Exercise name<input type="text" name="name" value="{{ ex.name }}" required /></label>
+        <div class="form-split">
+          <label>Sets <span class="form-help">One per line, e.g. <code>80 kg x 5</code></span><textarea name="sets_text" rows="5" placeholder="60 kg x 5&#10;70 kg x 5&#10;80 kg x 3">{{ format_sets(ex.sets) }}</textarea></label>
+          <label>Exercise notes <span class="form-help">Form cues, effort, or anything to remember.</span><textarea name="comment" rows="5" placeholder="How did this exercise feel?">{{ ex.comment }}</textarea></label>
+        </div>
+        <button type="submit" class="primary">{{ icon('check', 16) }} Save exercise</button>
+      </form>
+    </section>
+    {% else %}
+    <section class="card empty-state"><span class="empty-icon">{{ icon('dumbbell', 26) }}</span><h3>A blank slate. A fresh start.</h3><p>Add your first exercise below to start logging.</p></section>
+    {% endfor %}
+    <section class="card">
+      <div class="card-heading"><h2>Add an exercise</h2>{{ icon('plus', 18) }}</div>
+      <form method="post" action="/sessions/{{ session.id }}/exercises" class="stack">
+        <label>Exercise name<input type="text" name="name" required placeholder="e.g. Cable fly" /></label>
+        <label>Notes <span class="form-help">Optional</span><textarea name="comment" rows="2" placeholder="Anything to keep in mind?"></textarea></label>
+        <button type="submit">{{ icon('plus', 16) }} Add exercise</button>
+      </form>
+    </section>
   </div>
-
-  <form method="post" action="/sessions/{{ session.id }}/comment" class="stack">
-    <label>
-      Workout comment
-      <textarea name="comment" rows="3" placeholder="Overall notes for the session">{{ session.comment }}</textarea>
-    </label>
-    <button type="submit">Save workout comment</button>
-  </form>
-</section>
-
-{% for ex in session.exercises %}
-<section class="card" id="ex-{{ ex.id }}">
-  <form method="post" action="/sessions/{{ session.id }}/exercises/{{ ex.id }}" class="stack">
-    <label>
-      Exercise
-      <input type="text" name="name" value="{{ ex.name }}" required />
-    </label>
-    <label>
-      Sets (one per line: <code>80 kg x 5</code> or <code>135x5 @ RPE8</code>)
-      <textarea name="sets_text" rows="4" placeholder="60 kg x 5&#10;70 kg x 5&#10;80 kg x 3">{{ format_sets(ex.sets) }}</textarea>
-    </label>
-    <label>
-      Exercise comment
-      <textarea name="comment" rows="2" placeholder="Form notes, pain, swap reasons…">{{ ex.comment }}</textarea>
-    </label>
-    <button type="submit" class="primary">Save exercise</button>
-  </form>
-</section>
-{% endfor %}
-
-<section class="card">
-  <h2>Add exercise</h2>
-  <form method="post" action="/sessions/{{ session.id }}/exercises" class="stack">
-    <label>
-      Name
-      <input type="text" name="name" required placeholder="e.g. Cable fly" />
-    </label>
-    <label>
-      Comment
-      <textarea name="comment" rows="2"></textarea>
-    </label>
-    <button type="submit">Add</button>
-  </form>
-</section>
+  <aside class="editor-aside">
+    <section class="card">
+      <div class="card-heading"><h2>Session notes</h2><span class="muted">{{ icon('note', 18) }}</span></div>
+      <form method="post" action="/sessions/{{ session.id }}/comment" class="stack">
+        <label>The bigger picture<textarea name="comment" rows="5" placeholder="Energy, wins, things to try next time…">{{ session.comment }}</textarea></label>
+        <button type="submit">{{ icon('check', 15) }} Save notes</button>
+      </form>
+    </section>
+    <section class="card tip-card"><h3>{{ icon('info', 17) }} Keep it simple.</h3><p>Log one set per line. Use <code>60 kg x 5</code> or <code>135 lb x 5 @ RPE8</code>. Bodyweight and free-form notes work too.</p><p>Save each exercise before moving on.</p></section>
+    <form method="post" action="/sessions/{{ session.id }}/delete" onsubmit="return confirm('Delete this session? This cannot be undone.');"><button type="submit" class="danger full-width">Delete session</button></form>
+  </aside>
+</div>
 {% endblock %}

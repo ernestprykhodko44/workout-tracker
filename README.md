@@ -29,13 +29,26 @@ DB file defaults to `data/workouts.db` (override with `WORKOUT_DB_PATH`).
 
 ## How to use
 
-1. **Today** — see WOD from the regiment, start a session
+1. **Overview** — see your daily workout, activity counts, and clickable weekly schedule; use the date picker to view another date
 2. Fill **sets** one per line, e.g. `80 kg x 5` or `135x5 @ RPE8`
 3. Add **exercise comments** and a **workout comment**
-4. **Regiment** — view the weekly plan
-5. **History** — past sessions
+4. **My program** — view the weekly plan
+5. **Workout history** — revisit and edit past sessions
+6. **Create custom session** — open the dialog to start a workout outside your plan
 
 First boot seeds a sample **3-Day Strength** regiment (push/pull/legs).
+
+## Checks
+
+```bash
+uv sync --dev
+uv run python -m unittest discover -s tests -v
+uv build
+```
+
+The dashboard counts logged sessions, not completed workouts. Weekly statistics follow the selected date. Tests use a temporary SQLite database.
+
+The bundled gym image is from [Unsplash](https://images.unsplash.com/photo-1534438327276-14e5300c3a48). Fonts load from Google Fonts with system-font fallbacks.
 
 ## Oz cloud
 
